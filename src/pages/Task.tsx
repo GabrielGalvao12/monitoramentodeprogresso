@@ -7,23 +7,36 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, MessageSquare, Save, Waves, X } from "lucide-react";
+import { ArrowLeft, MessageSquare, Save, Waves, X, Trash2, Calendar, User } from "lucide-react";
 import { toast } from "sonner";
 import { useData } from "@/contexts/DataContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { Priority, TaskStatus, Tag } from "@/types";
+import { getDeadlineStatus, getDeadlineStatusColor, getDeadlineStatusText } from "@/lib/taskStatus";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const Task = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { getTaskById, updateTask, addComment } = useData();
+  const { getTaskById, updateTask, addComment, deleteTask, getBoardById } = useData();
   
   const task = getTaskById(id!);
+  const board = task ? getBoardById(task.boardId) : null;
   const [editedTask, setEditedTask] = useState(task);
   const [newComment, setNewComment] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [tagColor, setTagColor] = useState("#3B82F6");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   useEffect(() => {
     setEditedTask(task);
@@ -38,8 +51,24 @@ const Task = () => {
   }
 
   const handleSave = () => {
-    updateTask(id!, editedTask);
-    toast.success("Tarefa atualizada com sucesso!");
+    if (editedTask) {
+      // Se mudou para "done" e não tinha completedAt, adicionar
+      if (editedTask.status === "done" && !editedTask.completedAt) {
+        editedTask.completedAt = new Date().toISOString();
+      }
+      // Se mudou de "done" para outro status, remover completedAt
+      if (editedTask.status !== "done" && editedTask.completedAt) {
+        editedTask.completedAt = undefined;
+      }
+      updateTask(id!, editedTask);
+      toast.success("Tarefa atualizada com sucesso!");
+    }
+  };
+
+  const handleDelete = () => {
+    deleteTask(id!);
+    toast.success("Tarefa excluída!");
+    navigate(`/board/${task!.boardId}`);
   };
 
   const handleAddComment = () => {
@@ -75,6 +104,8 @@ const Task = () => {
     }
   };
 
+  const deadlineStatus = editedTask ? getDeadlineStatus(editedTask) : "none";
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b bg-card shadow-sm">
@@ -101,6 +132,12 @@ const Task = () => {
               <CardTitle className="text-2xl">Detalhes da Tarefa</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
+              {deadlineStatus !== "none" && (
+                <Badge className={getDeadlineStatusColor(deadlineStatus)} variant="outline">
+                  {getDeadlineStatusText(deadlineStatus)}
+                </Badge>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="title">Título</Label>
                 <Input
@@ -157,6 +194,44 @@ const Task = () => {
                 </div>
               </div>
 
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="deadline">
+                    <Calendar className="inline h-4 w-4 mr-1" />
+                    Prazo de Entrega
+                  </Label>
+                  <Input
+                    id="deadline"
+                    type="datetime-local"
+                    value={editedTask.deadline ? new Date(editedTask.deadline).toISOString().slice(0, 16) : ""}
+                    onChange={(e) => setEditedTask({ ...editedTask, deadline: e.target.value ? new Date(e.target.value).toISOString() : undefined })}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="assignedTo">
+                    <User className="inline h-4 w-4 mr-1" />
+                    Atribuído a
+                  </Label>
+                  <Select
+                    value={editedTask.assignedTo || "none"}
+                    onValueChange={(value) => setEditedTask({ ...editedTask, assignedTo: value === "none" ? undefined : value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um colaborador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Ninguém</SelectItem>
+                      {board?.collaborators.map((email) => (
+                        <SelectItem key={email} value={email}>
+                          {email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label>Etiquetas</Label>
                 <div className="flex gap-2 mb-2">
@@ -191,10 +266,20 @@ const Task = () => {
                 </div>
               </div>
 
-              <Button onClick={handleSave} className="w-full" size="lg">
-                <Save className="mr-2 h-5 w-5" />
-                Salvar Alterações
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleSave} className="flex-1" size="lg">
+                  <Save className="mr-2 h-5 w-5" />
+                  Salvar Alterações
+                </Button>
+                <Button 
+                  onClick={() => setShowDeleteDialog(true)} 
+                  variant="destructive" 
+                  size="lg"
+                >
+                  <Trash2 className="mr-2 h-5 w-5" />
+                  Deletar
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
@@ -241,6 +326,26 @@ const Task = () => {
           </Card>
         </div>
       </main>
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja deletar esta tarefa? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Deletar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

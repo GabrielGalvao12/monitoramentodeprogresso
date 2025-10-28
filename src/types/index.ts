@@ -26,12 +26,16 @@ export interface Task {
   comments: Comment[];
   createdAt: string;
   updatedAt: string;
+  assignedTo?: string;
+  deadline?: string;
+  completedAt?: string;
 }
 
 export interface Board {
   id: string;
   name: string;
   createdAt: string;
+  collaborators: string[];
 }
 
 export interface User {

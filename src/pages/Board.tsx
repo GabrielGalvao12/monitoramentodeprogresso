@@ -8,10 +8,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, BarChart3, Plus, Waves, X } from "lucide-react";
+import { ArrowLeft, BarChart3, Plus, Waves, X, UserPlus, Trash2, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { useData } from "@/contexts/DataContext";
 import { Priority, Tag } from "@/types";
+import { getDeadlineStatus, getDeadlineStatusColor, getDeadlineStatusText } from "@/lib/taskStatus";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   DndContext,
   DragEndEvent,
@@ -25,7 +36,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
+function TaskCard({ task, onClick, onDelete }: { task: any; onClick: () => void; onDelete: (e: React.MouseEvent) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
   });
@@ -49,6 +60,8 @@ function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
     }
   };
 
+  const deadlineStatus = getDeadlineStatus(task);
+
   return (
     <Card
       ref={setNodeRef}
@@ -58,8 +71,39 @@ function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
       className="cursor-move task-card-hover"
       onClick={onClick}
     >
-      <CardContent className="pt-6">
-        <h3 className="font-semibold mb-3">{task.title}</h3>
+      <CardContent className="pt-6 space-y-3">
+        <div className="flex items-start justify-between">
+          <h3 className="font-semibold flex-1">{task.title}</h3>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 hover:bg-destructive hover:text-destructive-foreground"
+            onClick={onDelete}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+        
+        {task.assignedTo && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <span>👤</span>
+            <span>{task.assignedTo}</span>
+          </div>
+        )}
+
+        {task.deadline && (
+          <div className="flex items-center gap-1 text-xs">
+            <Calendar className="h-3 w-3" />
+            <span>{new Date(task.deadline).toLocaleDateString("pt-BR")}</span>
+          </div>
+        )}
+
+        {deadlineStatus !== "none" && (
+          <Badge className={getDeadlineStatusColor(deadlineStatus)} variant="outline">
+            {getDeadlineStatusText(deadlineStatus)}
+          </Badge>
+        )}
+
         <div className="flex items-center justify-between">
           <Badge className={getPriorityColor(task.priority)} variant="outline">
             {task.priority}
@@ -86,9 +130,12 @@ function TaskCard({ task, onClick }: { task: any; onClick: () => void }) {
 const Board = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getBoardById, getTasksByBoard, createTask, moveTask } = useData();
+  const { getBoardById, getTasksByBoard, createTask, moveTask, deleteTask, addCollaborator } = useData();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCollabDialogOpen, setIsCollabDialogOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
+  const [collaboratorEmail, setCollaboratorEmail] = useState("");
 
   const board = getBoardById(id!);
   const tasks = getTasksByBoard(id!);
@@ -159,9 +206,40 @@ const Board = () => {
 
     const task = tasks.find((t) => t.id === taskId);
     if (task && task.status !== newStatus) {
+      const updates: any = { status: newStatus };
+      
+      // Se movendo para "done", adicionar completedAt
+      if (newStatus === "done" && !task.completedAt) {
+        updates.completedAt = new Date().toISOString();
+      }
+      
       moveTask(taskId, newStatus);
       toast.success("Tarefa movida!");
     }
+  };
+
+  const handleDeleteTask = (taskId: string) => {
+    deleteTask(taskId);
+    setTaskToDelete(null);
+    toast.success("Tarefa excluída!");
+  };
+
+  const handleAddCollaborator = () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!collaboratorEmail.trim() || !emailRegex.test(collaboratorEmail)) {
+      toast.error("Digite um e-mail válido");
+      return;
+    }
+
+    if (board?.collaborators.includes(collaboratorEmail)) {
+      toast.error("Este colaborador já foi adicionado");
+      return;
+    }
+
+    addCollaborator(id!, collaboratorEmail);
+    setCollaboratorEmail("");
+    setIsCollabDialogOpen(false);
+    toast.success(`Convite enviado para ${collaboratorEmail}!`);
   };
 
   if (!board) {
@@ -187,6 +265,10 @@ const Board = () => {
                 <h1 className="text-2xl font-bold">Monitoramento De Progresso</h1>
               </div>
               <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsCollabDialogOpen(true)}>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Convidar
+                </Button>
                 <Button variant="outline" onClick={() => navigate("/progress")}>
                   <BarChart3 className="mr-2 h-4 w-4" />
                   Progresso
@@ -323,6 +405,10 @@ const Board = () => {
                             key={task.id}
                             task={task}
                             onClick={() => navigate(`/task/${task.id}`)}
+                            onDelete={(e) => {
+                              e.stopPropagation();
+                              setTaskToDelete(task.id);
+                            }}
                           />
                         ))}
                       </div>
@@ -345,6 +431,63 @@ const Board = () => {
           </Card>
         ) : null}
       </DragOverlay>
+
+      <Dialog open={isCollabDialogOpen} onOpenChange={setIsCollabDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convidar Colaborador</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="collab-email">E-mail do colaborador</Label>
+              <Input
+                id="collab-email"
+                type="email"
+                placeholder="colaborador@email.com"
+                value={collaboratorEmail}
+                onChange={(e) => setCollaboratorEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAddCollaborator()}
+              />
+            </div>
+            {board && board.collaborators.length > 1 && (
+              <div className="space-y-2">
+                <Label>Colaboradores atuais:</Label>
+                <div className="space-y-1">
+                  {board.collaborators.map((email, idx) => (
+                    <div key={idx} className="text-sm text-muted-foreground flex items-center gap-2">
+                      <span>👤</span>
+                      <span>{email}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Button onClick={handleAddCollaborator} className="w-full">
+              Enviar Convite
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!taskToDelete} onOpenChange={() => setTaskToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja deletar esta tarefa? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => taskToDelete && handleDeleteTask(taskToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Deletar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DndContext>
   );
 };

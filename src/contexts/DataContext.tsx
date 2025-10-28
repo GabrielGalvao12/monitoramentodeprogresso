@@ -15,6 +15,7 @@ interface DataContextType {
   getTasksByBoard: (boardId: string) => Task[];
   getTaskById: (taskId: string) => Task | undefined;
   getBoardById: (boardId: string) => Board | undefined;
+  addCollaborator: (boardId: string, email: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -61,6 +62,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       id: crypto.randomUUID(),
       name,
       createdAt: new Date().toISOString(),
+      collaborators: user ? [user.email] : [],
     };
     setBoards([...boards, newBoard]);
   };
@@ -135,6 +137,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return boards.find((board) => board.id === boardId);
   };
 
+  const addCollaborator = (boardId: string, email: string) => {
+    setBoards(
+      boards.map((board) =>
+        board.id === boardId
+          ? { ...board, collaborators: [...board.collaborators, email] }
+          : board
+      )
+    );
+  };
+
   return (
     <DataContext.Provider
       value={{
@@ -150,6 +162,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         getTasksByBoard,
         getTaskById,
         getBoardById,
+        addCollaborator,
       }}
     >
       {children}

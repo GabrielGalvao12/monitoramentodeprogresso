@@ -2,10 +2,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Clock, LayoutGrid, TrendingUp, Waves } from "lucide-react";
+import { CheckCircle2, Clock, LayoutGrid, TrendingUp, Waves, AlertCircle } from "lucide-react";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
+import { getDeadlineStatus } from "@/lib/taskStatus";
+import { Badge } from "@/components/ui/badge";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -23,6 +25,8 @@ const Dashboard = () => {
     inProgress: tasks.filter((t) => t.status === "doing").length,
     completed: tasks.filter((t) => t.status === "done").length,
     progress: tasks.length > 0 ? Math.round((tasks.filter((t) => t.status === "done").length / tasks.length) * 100) : 0,
+    overdue: tasks.filter((t) => getDeadlineStatus(t) === "overdue").length,
+    today: tasks.filter((t) => getDeadlineStatus(t) === "today").length,
   };
 
   return (
@@ -57,6 +61,38 @@ const Dashboard = () => {
               Bem-vindo, {user?.name || "Usuário"}
             </p>
           </div>
+
+          {stats.overdue > 0 && (
+            <Card className="border-l-4 border-l-destructive bg-destructive/5">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-8 w-8 text-destructive" />
+                  <div>
+                    <h3 className="font-semibold text-lg">Atenção!</h3>
+                    <p className="text-muted-foreground">
+                      Você tem {stats.overdue} {stats.overdue === 1 ? "tarefa atrasada" : "tarefas atrasadas"}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {stats.today > 0 && stats.overdue === 0 && (
+            <Card className="border-l-4 border-l-amber-500 bg-amber-500/5">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <Clock className="h-8 w-8 text-amber-500" />
+                  <div>
+                    <h3 className="font-semibold text-lg">Último dia!</h3>
+                    <p className="text-muted-foreground">
+                      {stats.today} {stats.today === 1 ? "tarefa vence" : "tarefas vencem"} hoje
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid gap-6 md:grid-cols-3">
             <Card className="border-l-4 border-l-primary">

@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Waves } from "lucide-react";
+import { ArrowLeft, Waves, Clock, AlertCircle } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { useData } from "@/contexts/DataContext";
+import { getDeadlineStatus } from "@/lib/taskStatus";
 
 const Progress = () => {
   const navigate = useNavigate();
@@ -12,6 +13,11 @@ const Progress = () => {
   const todoCount = tasks.filter((t) => t.status === "todo").length;
   const doingCount = tasks.filter((t) => t.status === "doing").length;
   const doneCount = tasks.filter((t) => t.status === "done").length;
+
+  const overdueCount = tasks.filter((t) => getDeadlineStatus(t) === "overdue").length;
+  const todayCount = tasks.filter((t) => getDeadlineStatus(t) === "today").length;
+  const approachingCount = tasks.filter((t) => getDeadlineStatus(t) === "approaching").length;
+  const earlyCount = tasks.filter((t) => getDeadlineStatus(t) === "early").length;
 
   const barData = [
     { name: "A Fazer", tarefas: todoCount },
@@ -139,6 +145,48 @@ const Progress = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {tasks.some(t => t.deadline) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="h-5 w-5" />
+                      Status de Prazos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid gap-4 md:grid-cols-4">
+                      {overdueCount > 0 && (
+                        <div className="text-center p-4 rounded-lg bg-destructive/10">
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            <AlertCircle className="h-5 w-5 text-destructive" />
+                            <div className="text-3xl font-bold text-destructive">{overdueCount}</div>
+                          </div>
+                          <div className="text-sm text-muted-foreground">Atrasadas</div>
+                        </div>
+                      )}
+                      {todayCount > 0 && (
+                        <div className="text-center p-4 rounded-lg bg-amber-500/10">
+                          <div className="text-3xl font-bold text-amber-500">{todayCount}</div>
+                          <div className="text-sm text-muted-foreground mt-1">Vencem Hoje</div>
+                        </div>
+                      )}
+                      {approachingCount > 0 && (
+                        <div className="text-center p-4 rounded-lg bg-yellow-500/10">
+                          <div className="text-3xl font-bold text-yellow-600">{approachingCount}</div>
+                          <div className="text-sm text-muted-foreground mt-1">Prazo Próximo</div>
+                        </div>
+                      )}
+                      {earlyCount > 0 && (
+                        <div className="text-center p-4 rounded-lg bg-blue-500/10">
+                          <div className="text-3xl font-bold text-blue-500">{earlyCount}</div>
+                          <div className="text-sm text-muted-foreground mt-1">Antecipadas</div>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </>
           )}
         </div>
