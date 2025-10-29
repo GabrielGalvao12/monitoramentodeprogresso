@@ -222,7 +222,7 @@ const Task = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Ninguém</SelectItem>
-                      {board?.collaborators.map((email) => (
+                      {board?.collaborators?.map((email) => (
                         <SelectItem key={email} value={email}>
                           {email}
                         </SelectItem>

@@ -231,7 +231,7 @@ const Board = () => {
       return;
     }
 
-    if (board?.collaborators.includes(collaboratorEmail)) {
+    if (board?.collaborators?.includes(collaboratorEmail)) {
       toast.error("Este colaborador já foi adicionado");
       return;
     }
@@ -449,7 +449,7 @@ const Board = () => {
                 onKeyDown={(e) => e.key === "Enter" && handleAddCollaborator()}
               />
             </div>
-            {board && board.collaborators.length > 1 && (
+            {board && board.collaborators && board.collaborators.length > 1 && (
               <div className="space-y-2">
                 <Label>Colaboradores atuais:</Label>
                 <div className="space-y-1">
