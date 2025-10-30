@@ -40,8 +40,10 @@ const Auth = () => {
     } else {
       const result = await signup(name, email, password);
       if (result.success) {
-        setPendingEmail(email);
-        setShowVerification(true);
+        if (result.needsVerification) {
+          setPendingEmail(email);
+          setShowVerification(true);
+        }
       } else {
         toast.error(result.error);
       }

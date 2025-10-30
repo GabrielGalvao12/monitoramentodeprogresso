@@ -4,7 +4,7 @@ import { User } from "@/types";
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  signup: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string; needsVerification?: boolean }>;
   logout: () => void;
   verifyEmail: () => void;
   requestPasswordReset: (email: string) => void;
@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("users", JSON.stringify(users));
     localStorage.setItem("pendingVerification", email);
 
-    return { success: true };
+    return { success: true, needsVerification: true };
   };
 
   const verifyEmail = () => {

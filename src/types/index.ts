@@ -35,7 +35,18 @@ export interface Board {
   id: string;
   name: string;
   createdAt: string;
+  owner: string;
   collaborators: string[];
+}
+
+export interface Invitation {
+  id: string;
+  boardId: string;
+  boardName: string;
+  from: string;
+  to: string;
+  createdAt: string;
+  status: "pending" | "accepted" | "rejected";
 }
 
 export interface User {

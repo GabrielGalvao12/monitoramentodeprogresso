@@ -1,10 +1,11 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { Board, Task, Comment, Tag } from "@/types";
+import { Board, Task, Comment, Tag, Invitation } from "@/types";
 import { useAuth } from "./AuthContext";
 
 interface DataContextType {
   boards: Board[];
   tasks: Task[];
+  invitations: Invitation[];
   createBoard: (name: string) => void;
   deleteBoard: (id: string) => void;
   createTask: (boardId: string, title: string, description: string, priority: Task["priority"], tags: Tag[]) => void;
@@ -16,6 +17,9 @@ interface DataContextType {
   getTaskById: (taskId: string) => Task | undefined;
   getBoardById: (boardId: string) => Board | undefined;
   addCollaborator: (boardId: string, email: string) => void;
+  getPendingInvitations: () => Invitation[];
+  acceptInvitation: (invitationId: string) => void;
+  rejectInvitation: (invitationId: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -24,44 +28,74 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [boards, setBoards] = useState<Board[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [invitations, setInvitations] = useState<Invitation[]>([]);
 
-  const getUserKey = (key: string) => user ? `${user.email}_${key}` : null;
+  const getGlobalKey = (key: string) => `global_${key}`;
 
   useEffect(() => {
     if (user) {
-      const boardsKey = getUserKey("boards");
-      const tasksKey = getUserKey("tasks");
+      const boardsKey = getGlobalKey("boards");
+      const tasksKey = getGlobalKey("tasks");
+      const invitationsKey = getGlobalKey("invitations");
       
-      if (boardsKey && tasksKey) {
-        const storedBoards = localStorage.getItem(boardsKey);
-        const storedTasks = localStorage.getItem(tasksKey);
-        
-        setBoards(storedBoards ? JSON.parse(storedBoards) : []);
-        setTasks(storedTasks ? JSON.parse(storedTasks) : []);
+      // Migração de dados antigos (de usuário-específico para global)
+      const oldBoardsKey = `${user.email}_boards`;
+      const oldTasksKey = `${user.email}_tasks`;
+      const oldBoardsData = localStorage.getItem(oldBoardsKey);
+      const oldTasksData = localStorage.getItem(oldTasksKey);
+      
+      let storedBoards = localStorage.getItem(boardsKey);
+      let storedTasks = localStorage.getItem(tasksKey);
+      const storedInvitations = localStorage.getItem(invitationsKey);
+      
+      // Se existem dados antigos mas não dados novos, fazer migração
+      if (oldBoardsData && !storedBoards) {
+        storedBoards = oldBoardsData;
+        localStorage.setItem(boardsKey, oldBoardsData);
+        localStorage.removeItem(oldBoardsKey);
       }
+      
+      if (oldTasksData && !storedTasks) {
+        storedTasks = oldTasksData;
+        localStorage.setItem(tasksKey, oldTasksData);
+        localStorage.removeItem(oldTasksKey);
+      }
+      
+      const parsedBoards = storedBoards ? JSON.parse(storedBoards) : [];
+      
+      // Migrar quadros antigos sem o campo owner
+      const migratedBoards = parsedBoards.map((board: Board) => ({
+        ...board,
+        owner: board.owner || user.email,
+        collaborators: board.collaborators || [user.email],
+      }));
+      
+      setBoards(migratedBoards);
+      setTasks(storedTasks ? JSON.parse(storedTasks) : []);
+      setInvitations(storedInvitations ? JSON.parse(storedInvitations) : []);
     } else {
       setBoards([]);
       setTasks([]);
+      setInvitations([]);
     }
   }, [user]);
 
   useEffect(() => {
-    if (user) {
-      const boardsKey = getUserKey("boards");
-      const tasksKey = getUserKey("tasks");
-      
-      if (boardsKey && tasksKey) {
-        localStorage.setItem(boardsKey, JSON.stringify(boards));
-        localStorage.setItem(tasksKey, JSON.stringify(tasks));
-      }
-    }
-  }, [boards, tasks, user]);
+    const boardsKey = getGlobalKey("boards");
+    const tasksKey = getGlobalKey("tasks");
+    const invitationsKey = getGlobalKey("invitations");
+    
+    localStorage.setItem(boardsKey, JSON.stringify(boards));
+    localStorage.setItem(tasksKey, JSON.stringify(tasks));
+    localStorage.setItem(invitationsKey, JSON.stringify(invitations));
+  }, [boards, tasks, invitations]);
 
   const createBoard = (name: string) => {
     const newBoard: Board = {
       id: crypto.randomUUID(),
       name,
       createdAt: new Date().toISOString(),
+      owner: user?.email || "",
       collaborators: user ? [user.email] : [],
     };
     setBoards([...boards, newBoard]);
@@ -138,11 +172,57 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const addCollaborator = (boardId: string, email: string) => {
+    const board = boards.find(b => b.id === boardId);
+    if (!board) return;
+
+    const newInvitation: Invitation = {
+      id: crypto.randomUUID(),
+      boardId,
+      boardName: board.name,
+      from: user?.email || "",
+      to: email,
+      createdAt: new Date().toISOString(),
+      status: "pending",
+    };
+
+    setInvitations([...invitations, newInvitation]);
+  };
+
+  const getPendingInvitations = () => {
+    return invitations.filter(
+      inv => inv.to === user?.email && inv.status === "pending"
+    );
+  };
+
+  const acceptInvitation = (invitationId: string) => {
+    const invitation = invitations.find(inv => inv.id === invitationId);
+    if (!invitation) return;
+
+    // Adicionar colaborador ao quadro
     setBoards(
       boards.map((board) =>
-        board.id === boardId
-          ? { ...board, collaborators: [...board.collaborators, email] }
+        board.id === invitation.boardId
+          ? { ...board, collaborators: [...(board.collaborators || []), invitation.to] }
           : board
+      )
+    );
+
+    // Marcar convite como aceito
+    setInvitations(
+      invitations.map(inv =>
+        inv.id === invitationId
+          ? { ...inv, status: "accepted" as const }
+          : inv
+      )
+    );
+  };
+
+  const rejectInvitation = (invitationId: string) => {
+    setInvitations(
+      invitations.map(inv =>
+        inv.id === invitationId
+          ? { ...inv, status: "rejected" as const }
+          : inv
       )
     );
   };
@@ -152,6 +232,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       value={{
         boards,
         tasks,
+        invitations,
         createBoard,
         deleteBoard,
         createTask,
@@ -163,6 +244,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         getTaskById,
         getBoardById,
         addCollaborator,
+        getPendingInvitations,
+        acceptInvitation,
+        rejectInvitation,
       }}
     >
       {children}
