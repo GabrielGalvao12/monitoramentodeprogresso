@@ -1,73 +1,106 @@
-# Welcome to your Lovable project
+# 🧠 Monitoramento de Progresso
 
-## Project info
+O **Monitoramento de Progresso** é um sistema web inspirado no Trello, desenvolvido como MVP para o gerenciamento de tarefas e acompanhamento de equipes em projetos.  
+Ele permite organizar quadros, tarefas, colaboradores e prazos de forma simples, intuitiva e colaborativa.
 
-**URL**: https://lovable.dev/projects/0c81ea1d-ed15-4eb8-85f7-01ac3324b4cf
+---
 
-## How can I edit this code?
+## 🚀 Funcionalidades Principais
 
-There are several ways of editing your application.
+- 🔐 **Autenticação de usuários** (cadastro, login e simulação de verificação de e-mail)
+- 🗂️ **Criação e gerenciamento de quadros de tarefas**
+- ➕ **Criação, edição e exclusão de tarefas**
+- 🎯 **Organização por colunas Kanban:** *A Fazer*, *Em Andamento* e *Concluído*
+- 🧲 **Drag & Drop interativo:** mova tarefas entre colunas e o status é atualizado automaticamente
+- 🗑️ **Botão de exclusão de quadros e tarefas**
+- 👥 **Convite de colaboradores via e-mail**
+- 📨 **Compartilhamento de quadros entre usuários convidados**
+- 🧑‍💼 **Atribuição de tarefas a colaboradores**
+- 📅 **Calendário de prazos e alertas automáticos**
+  - Prazo se aproximando
+  - Último dia de entrega
+  - Atrasada
+  - Antecipada
+- 📊 **Dashboard de progresso e estatísticas automáticas**
+- 💾 **Persistência local (dados mantidos mesmo após recarregar a página)**
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/0c81ea1d-ed15-4eb8-85f7-01ac3324b4cf) and start prompting.
+## 💡 Tecnologias Utilizadas
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Front-end:** React.js / Vite  
+- **Estilo:** Tailwind CSS + Shadcn/UI  
+- **Gerenciamento de estado:** React Hooks e Context API  
+- **Armazenamento:** LocalStorage (simulação de banco de dados)  
+- **Protótipo inicial:** Lovable.AI  
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🧩 Estrutura do Projeto
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+📁 monitoramento-de-progresso
+┣ 📂 src
+┃ ┣ 📂 components # Componentes reutilizáveis
+┃ ┣ 📂 pages # Páginas principais (Login, Dashboard, Quadros, Tarefa)
+┃ ┣ 📂 hooks # Lógica de estado global
+┃ ┣ 📂 utils # Funções auxiliares e formatação
+┃ ┗ 📜 App.jsx # Roteamento principal
+┣ 📜 package.json
+┣ 📜 README.md
+┗ 📜 index.html
 
-Follow these steps:
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+---
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+## 🧠 Lógica de Compartilhamento
 
-# Step 3: Install the necessary dependencies.
-npm i
+- Cada **usuário** possui seus próprios quadros.  
+- Ao convidar outro usuário via e-mail, o sistema registra o convite.  
+- O convidado, ao aceitar, ganha **acesso completo** ao quadro.  
+- Todas as mudanças são **sincronizadas localmente** entre os membros do quadro.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+---
 
-**Edit a file directly in GitHub**
+## 🔔 Alertas de Prazos
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+- **Andamento:** tarefa dentro do prazo.
+- **Antecipada:** concluída antes do prazo.
+- **Último dia:** aviso de alerta visual.
+- **Atrasada:** prazo expirado e tarefa não concluída.
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🧑‍💻 Equipe
 
-## What technologies are used for this project?
+| Integrante | Função |
+|-------------|---------|
+| Samael | Documentação |
+| Bruno Barbosa | Líder, Desenvolvimento, Documentação e Teste |
+| Gabriel Cardoso | Desenvolvimento, Teste e Design |
+| Victor Gabriel | Desenvolvimento, Design |
+| Agenor Neto | Documentação e Desenvolvimento |
+| Pedro Diniz | Desenvolvimento |
+| Pedro Henrique | Desenvolvimento |
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📅 Status do Projeto
 
-## How can I deploy this project?
+ **Conclusão (versão MVP funcional)**  
+As próximas etapas incluem:
+- Terminar a Documentação do projeto
 
-Simply open [Lovable](https://lovable.dev/projects/0c81ea1d-ed15-4eb8-85f7-01ac3324b4cf) and click on Share -> Publish.
+---
 
-## Can I connect a custom domain to my Lovable project?
+## 📜 Licença
 
-Yes, you can!
+Este projeto é de uso acadêmico e está sob a licença MIT.  
+Sinta-se livre para estudar, modificar e aprimorar.
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+---
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+### 💬 Contato
+Para dúvidas ou sugestões, entre em contato com a equipe pelo e-mail:  
+📧 **brunobfsm10@gmail.com**
+
+---
