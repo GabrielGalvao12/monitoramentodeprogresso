@@ -32,24 +32,8 @@ Ele permite organizar quadros, tarefas, colaboradores e prazos de forma simples,
 - **Estilo:** Tailwind CSS + Shadcn/UI  
 - **Gerenciamento de estado:** React Hooks e Context API  
 - **Armazenamento:** LocalStorage (simulação de banco de dados)  
-- **Protótipo inicial:** Lovable.AI  
-
----
-
-## 🧩 Estrutura do Projeto
-
-📁 monitoramento-de-progresso
-┣ 📂 src
-┃ ┣ 📂 components # Componentes reutilizáveis
-┃ ┣ 📂 pages # Páginas principais (Login, Dashboard, Quadros, Tarefa)
-┃ ┣ 📂 hooks # Lógica de estado global
-┃ ┣ 📂 utils # Funções auxiliares e formatação
-┃ ┗ 📜 App.jsx # Roteamento principal
-┣ 📜 package.json
-┣ 📜 README.md
-┗ 📜 index.html
-
-
+- **Protótipo inicial:** Lovable.AI
+- 
 ---
 
 ## 🧠 Lógica de Compartilhamento
